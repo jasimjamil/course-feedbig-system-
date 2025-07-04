@@ -1,0 +1,42 @@
+# Virtual Environment
+venv/
+env/
+.env/
+.venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite databases
+*.db
+
+# Streamlit specific
+.streamlit/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Rust build files
+target/
+Cargo.lock 
