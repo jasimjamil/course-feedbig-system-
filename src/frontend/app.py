@@ -328,13 +328,13 @@ def main():
             if not courses:
                 st.warning('No courses available. Please contact an administrator.')
             else:
-                course_options = {name: (id, desc) for id, name, desc in courses}
+                course_options = {name: id for id, name, _ in courses}
                 
                 selected_course_name = st.selectbox('Select Course', list(course_options.keys()))
-                course_id, course_desc = course_options[selected_course_name]
+                course_id = course_options[selected_course_name]
                 
                 # Display course description
-                st.markdown(f"**Course Description**: {course_desc}")
+                st.markdown(f"**Course Description**: {courses[course_id - 1][2]}")
                 
                 # Rating and feedback
                 rating = st.slider('Rate the Course', 1, 5, 3)
