@@ -256,9 +256,10 @@ def main():
     # Initialize app
     app = CourseFeedbackApp()
 
-    # Session state management
+    # Ensure session state is properly initialized
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
+    if 'user' not in st.session_state:
         st.session_state.user = None
 
     # Login/Register Section
@@ -292,7 +293,7 @@ def main():
                         'username': user[1],
                         'role': user[3]
                     }
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error('Invalid credentials')
             st.markdown('</div>', unsafe_allow_html=True)
@@ -328,13 +329,14 @@ def main():
             if not courses:
                 st.warning('No courses available. Please contact an administrator.')
             else:
-                course_options = {name: id for id, name, _ in courses}
+                # Correctly unpack the three-element tuple
+                course_options = {name: (id, desc) for id, name, desc in courses}
                 
                 selected_course_name = st.selectbox('Select Course', list(course_options.keys()))
-                course_id = course_options[selected_course_name]
+                course_id, course_desc = course_options[selected_course_name]
                 
                 # Display course description
-                st.markdown(f"**Course Description**: {courses[course_id - 1][2]}")
+                st.markdown(f"**Course Description**: {course_desc}")
                 
                 # Rating and feedback
                 rating = st.slider('Rate the Course', 1, 5, 3)
@@ -410,7 +412,7 @@ def main():
         if st.sidebar.button('Logout'):
             st.session_state.logged_in = False
             st.session_state.user = None
-            st.experimental_rerun()
+            st.rerun()
 
 if __name__ == '__main__':
     main() 
