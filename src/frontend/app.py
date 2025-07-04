@@ -332,23 +332,17 @@ def main():
                 st.warning('No courses available. Please contact an administrator.')
             else:
                 # Create a dictionary mapping course names to their full details
-                course_options = {
-                    course[1]: {
-                        'id': course[0], 
-                        'description': course[2]
-                    } for course in courses
-                }
+                course_options = {course[1]: course[0] for course in courses}
                 
                 # Select course by name
                 selected_course_name = st.selectbox('Select Course', list(course_options.keys()))
                 
                 # Retrieve course details
                 selected_course = course_options[selected_course_name]
-                course_id = selected_course['id']
-                course_desc = selected_course['description']
+                course_id = selected_course
                 
                 # Display course description
-                st.markdown(f"**Course Description**: {course_desc}")
+                st.markdown(f"**Course Description**: {course[2]}")
                 
                 # Rating and feedback
                 rating = st.slider('Rate the Course', 1, 5, 3)
@@ -374,7 +368,7 @@ def main():
             if not courses:
                 st.warning('No courses available.')
             else:
-                course_options = {name: id for id, name in courses}
+                course_options = {course[1]: course[0] for course in courses}
                 
                 selected_course = st.selectbox('Select Course', list(course_options.keys()))
                 
