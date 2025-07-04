@@ -220,12 +220,14 @@ class CourseFeedbackApp:
         """Retrieve all courses with description"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            # Use COALESCE to provide a default description if NULL
+            # Ensure consistent column order and use COALESCE for description
             cursor.execute('''
-                SELECT id, name, COALESCE(description, 'No description available') 
+                SELECT id, name, COALESCE(description, 'No description available') as description
                 FROM courses
+                ORDER BY id
             ''')
-            return cursor.fetchall()
+            # Fetch all results and convert to list to ensure it's fully evaluated
+            return list(cursor.fetchall())
 
     def get_course_feedback(self, course_id):
         """Retrieve feedback for a specific course"""
@@ -329,11 +331,21 @@ def main():
             if not courses:
                 st.warning('No courses available. Please contact an administrator.')
             else:
-                # Correctly unpack the three-element tuple
-                course_options = {name: (id, desc) for id, name, desc in courses}
+                # Create a dictionary mapping course names to their full details
+                course_options = {
+                    course[1]: {
+                        'id': course[0], 
+                        'description': course[2]
+                    } for course in courses
+                }
                 
+                # Select course by name
                 selected_course_name = st.selectbox('Select Course', list(course_options.keys()))
-                course_id, course_desc = course_options[selected_course_name]
+                
+                # Retrieve course details
+                selected_course = course_options[selected_course_name]
+                course_id = selected_course['id']
+                course_desc = selected_course['description']
                 
                 # Display course description
                 st.markdown(f"**Course Description**: {course_desc}")
