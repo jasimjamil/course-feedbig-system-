@@ -108,6 +108,7 @@ class CourseFeedbackApp:
                     id INTEGER PRIMARY KEY,
                     name TEXT NOT NULL,
                     instructor_id INTEGER,
+                    description TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY(instructor_id) REFERENCES users(id)
                 )
@@ -119,6 +120,7 @@ class CourseFeedbackApp:
                     course_id INTEGER NOT NULL,
                     student_id INTEGER NOT NULL,
                     content TEXT NOT NULL,
+                    rating INTEGER CHECK(rating BETWEEN 1 AND 5) DEFAULT 3,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY(course_id) REFERENCES courses(id),
                     FOREIGN KEY(student_id) REFERENCES users(id)
@@ -142,7 +144,6 @@ class CourseFeedbackApp:
             try:
                 cursor.execute('SELECT rating FROM feedback LIMIT 1')
             except sqlite3.OperationalError:
-                # Add rating column with a default value
                 cursor.execute('''
                     ALTER TABLE feedback 
                     ADD COLUMN rating INTEGER CHECK(rating BETWEEN 1 AND 5) DEFAULT 3
@@ -220,14 +221,12 @@ class CourseFeedbackApp:
         """Retrieve all courses with description"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            # Ensure consistent column order and use COALESCE for description
             cursor.execute('''
                 SELECT id, name, COALESCE(description, 'No description available') as description
                 FROM courses
                 ORDER BY id
             ''')
-            # Fetch all results and convert to list to ensure it's fully evaluated
-            return list(cursor.fetchall())
+            return cursor.fetchall()
 
     def get_course_feedback(self, course_id):
         """Retrieve feedback for a specific course"""
@@ -238,6 +237,7 @@ class CourseFeedbackApp:
                 FROM feedback f 
                 JOIN users u ON f.student_id = u.id 
                 WHERE f.course_id = ?
+                ORDER BY f.created_at DESC
             ''', (course_id,))
             return cursor.fetchall()
 
@@ -320,6 +320,12 @@ def main():
         st.sidebar.title(f"👤 {st.session_state.user['username']}")
         st.sidebar.markdown(f"**Role**: <span class='{st.session_state.user['role']}-role'>{st.session_state.user['role'].capitalize()}</span>", unsafe_allow_html=True)
         
+        # Logout button at the bottom of the sidebar
+        if st.sidebar.button('Logout', key='logout_button'):
+            st.session_state.logged_in = False
+            st.session_state.user = None
+            st.rerun()
+        
         # Main content area
         st.markdown('<div class="main-container">', unsafe_allow_html=True)
         
@@ -332,17 +338,16 @@ def main():
                 st.warning('No courses available. Please contact an administrator.')
             else:
                 # Create a dictionary mapping course names to their full details
-                course_options = {course[1]: course[0] for course in courses}
+                course_options = {course[1]: (course[0], course[2]) for course in courses}
                 
                 # Select course by name
                 selected_course_name = st.selectbox('Select Course', list(course_options.keys()))
                 
                 # Retrieve course details
-                selected_course = course_options[selected_course_name]
-                course_id = selected_course
+                course_id, course_description = course_options[selected_course_name]
                 
                 # Display course description
-                st.markdown(f"**Course Description**: {course[2]}")
+                st.markdown(f"**Course Description**: {course_description}")
                 
                 # Rating and feedback
                 rating = st.slider('Rate the Course', 1, 5, 3)
@@ -360,7 +365,6 @@ def main():
                     except ValueError as e:
                         st.error(str(e))
 
-        # Instructor Interface
         elif st.session_state.user['role'] == 'instructor':
             st.header('Course Feedback')
             courses = app.get_courses()
@@ -389,36 +393,35 @@ def main():
                     else:
                         st.info('No feedback received for this course')
 
-        # Admin Interface
         elif st.session_state.user['role'] == 'admin':
             st.header('Admin Panel')
             
             # Add Course
             st.subheader('Add New Course')
-            new_course_name = st.text_input('Course Name')
+            new_course_name = st.text_input('Course Name', key='new_course_name')
+            new_course_desc = st.text_area('Course Description', key='new_course_desc')
+            
             if st.button('Create Course'):
                 with sqlite3.connect(app.db_path) as conn:
                     cursor = conn.cursor()
-                    cursor.execute('INSERT INTO courses (name, instructor_id) VALUES (?, ?)', 
-                                   (new_course_name, None))
+                    cursor.execute('''
+                        INSERT INTO courses (name, description, instructor_id) 
+                        VALUES (?, ?, ?)
+                    ''', (new_course_name, new_course_desc, None))
                     conn.commit()
                 st.success(f'Course "{new_course_name}" added successfully!')
+                st.rerun()
 
             # Delete Feedback
             st.subheader('Delete Feedback')
-            feedback_id = st.number_input('Enter Feedback ID to Delete', min_value=1)
+            feedback_id = st.number_input('Enter Feedback ID to Delete', min_value=1, key='delete_feedback_id')
             
             if st.button('Delete Feedback'):
                 app.delete_feedback(feedback_id)
                 st.success(f'Feedback {feedback_id} deleted successfully')
+                st.rerun()
 
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Logout button
-        if st.sidebar.button('Logout'):
-            st.session_state.logged_in = False
-            st.session_state.user = None
-            st.rerun()
-
 if __name__ == '__main__':
-    main() 
+    main()
